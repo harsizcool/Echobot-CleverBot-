@@ -1,79 +1,51 @@
-const API_URL = 'https://sheetdb.io/api/v1/pllqafkqez65v';
-const chatBox = document.getElementById('chat-box');
-const userInput = document.getElementById('user-input');
-const sendButton = document.getElementById('send-button');
+// Add event listener to the submit button
+document.getElementById("submitBtn").addEventListener("click", function() {
+  // Get user input from the text box
+  let userMessage = document.getElementById("userMessage").value;
 
-// Function to add message to chat
-function addMessage(text, isUser = true) {
-    const message = document.createElement('div');
-    message.classList.add('message');
-    message.classList.add(isUser ? 'user-message' : 'bot-message');
-    message.textContent = text;
-    chatBox.appendChild(message);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
+  // If the input is empty, do nothing
+  if (userMessage.trim() === "") {
+    return;
+  }
 
-// Function to fetch data from the database
-async function fetchData(userMessage) {
-    try {
-        const response = await fetch(`${API_URL}?user_input=${encodeURIComponent(userMessage)}`);
-        const data = await response.json();
+  // Display user message in the chatbox
+  let chatBox = document.getElementById("chatbox");
+  chatBox.innerHTML += `<div class="userMessage">${userMessage}</div>`;
 
-        if (data.length > 0) {
-            return data[0].bot_response;
-        } else {
-            return "I don't know that yet. Let me remember this!";
-        }
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        return "There was an error. Please try again later.";
-    }
-}
+  // Clear the input box
+  document.getElementById("userMessage").value = "";
 
-// Function to store user input and bot response in the database
-async function storeData(userMessage, botResponse) {
-    try {
-        const body = {
-            data: [{
-                user_input: userMessage,
-                bot_response: botResponse
-            }]
-        };
+  // Query the SheetDB API to get all data from the Google Sheets
+  fetch("https://sheetdb.io/api/v1/pllqafkqez65v")
+    .then(response => response.json()) // Parse the response as JSON
+    .then(data => {
+      console.log("Fetched data:", data); // Check the fetched data in the console
 
-        await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-        });
-        console.log("Data stored successfully!");
-    } catch (error) {
-        console.error("Error storing data:", error);
-    }
-}
+      // Create a Fuse.js instance for fuzzy matching
+      const options = {
+        includeScore: true,
+        keys: ['user_input']
+      };
+      const fuse = new Fuse(data, options);
 
-// Main function to handle user input and bot response
-async function handleMessage() {
-    const userMessage = userInput.value.trim();
-    if (userMessage === "") return;
+      // Search for the best match based on user input
+      const result = fuse.search(userMessage);
 
-    addMessage(userMessage, true);
-    userInput.value = "";
+      if (result.length > 0) {
+        // If a match is found, show the bot response
+        let botResponse = result[0].item.bot_response;
+        chatBox.innerHTML += `<div class="botMessage">${botResponse}</div>`;
+      } else {
+        // If no match is found, show a default response
+        chatBox.innerHTML += `<div class="botMessage">Sorry, I don't understand.</div>`;
+      }
 
-    const botResponse = await fetchData(userMessage);
-
-    if (botResponse === "I don't know that yet. Let me remember this!") {
-        addMessage("I'm not sure how to respond yet. Please ask something else!", false);
-    } else {
-        addMessage(botResponse, false);
-    }
-}
-
-// Event listeners for sending messages
-sendButton.addEventListener('click', handleMessage);
-userInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
-        handleMessage();
-    }
+      // Scroll to the bottom of the chatbox to show the new message
+      chatBox.scrollTop = chatBox.scrollHeight;
+    })
+    .catch(error => {
+      console.error("Error fetching data:", error);
+      // Show a fallback message in case of error
+      chatBox.innerHTML += `<div class="botMessage">Sorry, there was an error processing your message.</div>`;
+    });
 });
