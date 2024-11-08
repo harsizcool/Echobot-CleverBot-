@@ -23,18 +23,28 @@ document.getElementById("submitBtn").addEventListener("click", function() {
 
       // Create a Fuse.js instance for fuzzy matching
       const options = {
-        includeScore: true,
-        keys: ['user_input']
+        includeScore: true,   // Include the score to see how close the match is
+        threshold: 0.3,       // Allow slight tolerance for fuzziness (lower means stricter)
+        keys: ['user_input']  // Search only the 'user_input' column
       };
       const fuse = new Fuse(data, options);
 
       // Search for the best match based on user input
       const result = fuse.search(userMessage);
 
+      // Check if a result exists
       if (result.length > 0) {
-        // If a match is found, show the bot response
-        let botResponse = result[0].item.bot_response;
-        chatBox.innerHTML += `<div class="botMessage">${botResponse}</div>`;
+        // Get the best match
+        let bestMatch = result[0].item.bot_response;
+
+        // If the result is the same as the last response, don't repeat it
+        let lastBotMessage = chatBox.querySelector('.botMessage:last-child');
+        if (lastBotMessage && lastBotMessage.innerText === bestMatch) {
+          chatBox.innerHTML += `<div class="botMessage">Sorry, I don't understand.</div>`;
+        } else {
+          // If the response is different, show the bot response
+          chatBox.innerHTML += `<div class="botMessage">${bestMatch}</div>`;
+        }
       } else {
         // If no match is found, show a default response
         chatBox.innerHTML += `<div class="botMessage">Sorry, I don't understand.</div>`;
