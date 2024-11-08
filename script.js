@@ -3,7 +3,7 @@ const chatBox = document.getElementById('chat-box');
 const userInput = document.getElementById('user-input');
 const sendButton = document.getElementById('send-button');
 
-// Function to add a message to the chat box
+// Function to add message to chat
 function addMessage(text, isUser = true) {
     const message = document.createElement('div');
     message.classList.add('message');
@@ -13,7 +13,7 @@ function addMessage(text, isUser = true) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// Function to fetch bot response from SheetDB
+// Function to fetch data from the database
 async function fetchData(userMessage) {
     try {
         const response = await fetch(`${API_URL}?user_input=${encodeURIComponent(userMessage)}`);
@@ -30,7 +30,7 @@ async function fetchData(userMessage) {
     }
 }
 
-// Function to store new user input and bot response
+// Function to store user input and bot response in the database
 async function storeData(userMessage, botResponse) {
     try {
         const body = {
@@ -53,7 +53,7 @@ async function storeData(userMessage, botResponse) {
     }
 }
 
-// Function to handle user message
+// Main function to handle user input and bot response
 async function handleMessage() {
     const userMessage = userInput.value.trim();
     if (userMessage === "") return;
@@ -64,15 +64,13 @@ async function handleMessage() {
     const botResponse = await fetchData(userMessage);
 
     if (botResponse === "I don't know that yet. Let me remember this!") {
-        const newResponse = `This is a response for: ${userMessage}`;
-        await storeData(userMessage, newResponse);
-        addMessage(newResponse, false);
+        addMessage("I'm not sure how to respond yet. Please ask something else!", false);
     } else {
         addMessage(botResponse, false);
     }
 }
 
-// Event listeners
+// Event listeners for sending messages
 sendButton.addEventListener('click', handleMessage);
 userInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter') {
